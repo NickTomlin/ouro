@@ -26,6 +26,16 @@ console.log(x)
 
 Directives live in comment lines starting with a configurable prefix (`// ` by default). Everything else is source code passed to your binary.
 
+### Binary invocation
+
+For each test file ouro calls:
+
+```
+<binary> [args...] <test-file-path>
+```
+
+The test file path is always the last argument. `args` come from `args:` directives in the file. If there are none, ouro calls `<binary> <test-file-path>` with no extra flags.
+
 ---
 
 ## Directives
@@ -36,11 +46,15 @@ Directives live in comment lines starting with a configurable prefix (`// ` by d
 | `out:` / `:out` | block | Multi-line stdout expectation |
 | `err: <text>` | inline | Entire stderr must equal `<text>` |
 | `err:` / `:err` | block | Multi-line stderr expectation |
-| `args: <flags>` | inline | Arguments passed to the binary (accumulates) |
-| `args:` / `:args` | block | Multi-line args, one per line |
+| `args: <flags>` | inline | Append shell-split flags to args (can repeat) |
+| `args:` / `:args` | block | Multi-line args, one arg per line |
 | `exit: <n>` | inline | Expected exit code (default: `0`) |
 
-Omitting `out:` or `err:` means that stream is not checked.
+Omitting `out:` or `err:` means that stream is not checked at all.
+
+### Comparison
+
+Trailing newlines are trimmed from both sides before comparing. Everything else is an exact match — no whitespace normalization, no regex.
 
 ### Inline shorthand
 
@@ -102,7 +116,7 @@ fn golden() {
         .binary("target/debug/myc")
         .files("tests/**/*.myc")
         .prefix("// ")
-        .run()
+        .run()    // Ok(()) = all passed; Err(()) = failures (already printed to stderr)
         .unwrap();
 }
 ```
@@ -125,15 +139,19 @@ cargo install ouro --features binary
 
 ```
 ouro [OPTIONS]
+ouro llm-context
 
   --binary <PATH>    Binary to test
   --files <GLOB>     Test file glob     [default: tests/**/*]
   --prefix <STR>     Comment prefix     [default: "// "]
   --update           Overwrite expected output with actual
   --jobs <N>         Parallel workers   [default: num CPUs]
+  --config <PATH>    Path to ouro.toml  [default: search upward from CWD]
 ```
 
 Exit 0 if all tests pass, 1 if any fail.
+
+`ouro llm-context` prints a compact plain-text spec of directives, invocation contract, comparison rules, and the library API — suitable for pasting into an LLM context window.
 
 ### Updating expectations
 
