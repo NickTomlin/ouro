@@ -4,6 +4,7 @@ use crate::patterns::PatternSet;
 #[derive(Debug, Clone)]
 pub struct TestCase {
     pub path: PathBuf,
+    pub prefix: String,
     pub args: Vec<String>,
     pub expected_stdout: Option<String>,
     pub expected_stderr: Option<String>,
@@ -43,6 +44,13 @@ enum State {
     InStderr,
 }
 
+fn append_to(slot: &mut Option<String>, value: &str) {
+    match slot {
+        Some(ref mut s) => { s.push('\n'); s.push_str(value); }
+        None => *slot = Some(value.to_string()),
+    }
+}
+
 pub fn parse_file(path: &Path, patterns: &dyn PatternSet) -> Result<TestCase, ParseError> {
     let content = std::fs::read_to_string(path)?;
     let prefix = patterns.prefix();
@@ -74,7 +82,7 @@ pub fn parse_file(path: &Path, patterns: &dyn PatternSet) -> Result<TestCase, Pa
                 }
                 State::InStdout => {
                     if trimmed == patterns.stdout_close() {
-                        expected_stdout = Some(stdout_lines.join("\n"));
+                        append_to(&mut expected_stdout, &stdout_lines.join("\n"));
                         stdout_lines.clear();
                         state = State::Idle;
                     } else {
@@ -84,7 +92,7 @@ pub fn parse_file(path: &Path, patterns: &dyn PatternSet) -> Result<TestCase, Pa
                 }
                 State::InStderr => {
                     if trimmed == patterns.stderr_close() {
-                        expected_stderr = Some(stderr_lines.join("\n"));
+                        append_to(&mut expected_stderr, &stderr_lines.join("\n"));
                         stderr_lines.clear();
                         state = State::Idle;
                     } else {
@@ -111,13 +119,9 @@ pub fn parse_file(path: &Path, patterns: &dyn PatternSet) -> Result<TestCase, Pa
                     }
                 }
             } else if let Some(val) = trimmed.strip_prefix(patterns.stdout_inline()) {
-                // inline out:
-                let val = val.trim();
-                expected_stdout = Some(val.to_string());
+                append_to(&mut expected_stdout, val.trim());
             } else if let Some(val) = trimmed.strip_prefix(patterns.stderr_inline()) {
-                // inline err:
-                let val = val.trim();
-                expected_stderr = Some(val.to_string());
+                append_to(&mut expected_stderr, val.trim());
             } else if let Some(val) = trimmed.strip_prefix(patterns.exit()) {
                 let val = val.trim();
                 if let Ok(n) = val.parse::<i32>() {
@@ -221,6 +225,32 @@ mod tests {
     fn test_non_prefix_line_in_idle_ok() {
         let tc = parse("let x = 42;\n// out: 42\n").unwrap();
         assert_eq!(tc.expected_stdout, Some("42".to_string()));
+    }
+
+    #[test]
+    fn test_stacked_inline_out() {
+        let tc = parse("// out: foo\n// out: bar\n").unwrap();
+        assert_eq!(tc.expected_stdout, Some("foo\nbar".to_string()));
+    }
+
+    #[test]
+    fn test_stacked_inline_then_block() {
+        let content = "// out: foo\n// out:\n// bar\n// baz\n// :out\n";
+        let tc = parse(content).unwrap();
+        assert_eq!(tc.expected_stdout, Some("foo\nbar\nbaz".to_string()));
+    }
+
+    #[test]
+    fn test_stacked_block_then_inline() {
+        let content = "// out:\n// foo\n// bar\n// :out\n// out: baz\n";
+        let tc = parse(content).unwrap();
+        assert_eq!(tc.expected_stdout, Some("foo\nbar\nbaz".to_string()));
+    }
+
+    #[test]
+    fn test_stacked_inline_err() {
+        let tc = parse("// err: oops\n// err: also bad\n").unwrap();
+        assert_eq!(tc.expected_stderr, Some("oops\nalso bad".to_string()));
     }
 
     #[test]
