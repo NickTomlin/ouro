@@ -1,0 +1,4 @@
+[workspace]
+# Set to true if you want release-plz to publish to crates.io.
+# You'll also need a CARGO_REGISTRY_TOKEN secret in your repo settings.
+publish = false
