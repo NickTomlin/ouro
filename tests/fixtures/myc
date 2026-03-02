@@ -1,0 +1,38 @@
+#!/usr/bin/env sh
+# Minimal fake compiler: evaluates a simple language
+# print "..." -> stdout
+# error "..." -> stderr + exit 1
+# exit N      -> exit with code N
+
+if [ -z "$1" ]; then
+    echo "usage: myc <file>" >&2
+    exit 1
+fi
+
+file="$1"
+exit_code=0
+
+while IFS= read -r line || [ -n "$line" ]; do
+    case "$line" in
+        'print "'*)
+            # Extract text between quotes
+            msg="${line#print \"}"
+            msg="${msg%\"}"
+            printf '%s\n' "$msg"
+            ;;
+        'error "'*)
+            msg="${line#error \"}"
+            msg="${msg%\"}"
+            printf '%s\n' "$msg" >&2
+            exit_code=1
+            ;;
+        'exit '*)
+            exit_code="${line#exit }"
+            ;;
+        # Ignore comments and blank lines
+        '//'*|'#'*|'')
+            ;;
+    esac
+done < "$file"
+
+exit "$exit_code"

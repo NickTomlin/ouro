@@ -1,0 +1,4 @@
+// err: warning: unused variable 'x'
+// exit: 1
+
+error "warning: unused variable 'x'"

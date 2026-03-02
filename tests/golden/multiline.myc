@@ -1,0 +1,11 @@
+// out:
+// ; optimized output
+// mov rax, 42
+// ret
+// }
+// :out
+
+print "; optimized output"
+print "mov rax, 42"
+print "ret"
+print "}"

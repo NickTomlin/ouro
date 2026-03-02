@@ -1,0 +1,4 @@
+// out: hello world
+// exit: 0
+
+print "hello world"
