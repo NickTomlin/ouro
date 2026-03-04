@@ -1,5 +1,5 @@
-use similar::{ChangeTag, TextDiff};
 use colored::Colorize;
+use similar::{ChangeTag, TextDiff};
 
 pub fn print_diff(stream: &str, expected: &str, actual: &str) {
     eprintln!("\n--- {stream} ---");
