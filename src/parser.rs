@@ -160,6 +160,7 @@ pub fn parse_file(path: &Path, patterns: &dyn PatternSet) -> Result<TestCase, Pa
 
     Ok(TestCase {
         path: path.to_path_buf(),
+        prefix: prefix.to_string(),
         args: args_parts,
         expected_stdout,
         expected_stderr,
