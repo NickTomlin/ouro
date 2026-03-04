@@ -4,6 +4,7 @@ use crate::patterns::PatternSet;
 #[derive(Debug, Clone)]
 pub struct TestCase {
     pub path: PathBuf,
+    pub prefix: String,
     pub args: Vec<String>,
     pub expected_stdout: Option<String>,
     pub expected_stderr: Option<String>,
@@ -159,6 +160,7 @@ pub fn parse_file(path: &Path, patterns: &dyn PatternSet) -> Result<TestCase, Pa
 
     Ok(TestCase {
         path: path.to_path_buf(),
+        prefix: prefix.to_string(),
         args: args_parts,
         expected_stdout,
         expected_stderr,
