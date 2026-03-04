@@ -1,5 +1,5 @@
-use std::path::{Path, PathBuf};
 use crate::patterns::PatternSet;
+use std::path::{Path, PathBuf};
 
 #[derive(Debug, Clone)]
 pub struct TestCase {
@@ -46,7 +46,10 @@ enum State {
 
 fn append_to(slot: &mut Option<String>, value: &str) {
     match slot {
-        Some(ref mut s) => { s.push('\n'); s.push_str(value); }
+        Some(ref mut s) => {
+            s.push('\n');
+            s.push_str(value);
+        }
         None => *slot = Some(value.to_string()),
     }
 }

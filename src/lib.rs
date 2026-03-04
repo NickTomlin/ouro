@@ -12,10 +12,23 @@ use runner::{run_test, update_test, TestOutcome};
 
 use std::path::{Path, PathBuf};
 
+/// Returned when one or more tests fail. Details have already been printed to stderr.
+#[derive(Debug)]
+pub struct TestsFailed;
+
+impl std::fmt::Display for TestsFailed {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "one or more tests failed")
+    }
+}
+
+impl std::error::Error for TestsFailed {}
+
 /// Load config from `ouro.toml` (searched upward from CWD) and run all tests.
-pub fn run(config_path: impl AsRef<Path>) -> Result<(), ()> {
+pub fn run(config_path: impl AsRef<Path>) -> Result<(), TestsFailed> {
     let config = Config::from_file(config_path.as_ref()).map_err(|e| {
         eprintln!("ouro: failed to load config: {e}");
+        TestsFailed
     })?;
     Suite::from_config(config).run()
 }
@@ -75,9 +88,10 @@ impl Suite {
         self
     }
 
-    pub fn run(self) -> Result<(), ()> {
+    pub fn run(self) -> Result<(), TestsFailed> {
         let binary = self.binary.as_deref().ok_or_else(|| {
             eprintln!("ouro: no binary specified");
+            TestsFailed
         })?;
 
         #[cfg(feature = "parallel")]
@@ -99,7 +113,10 @@ impl Suite {
         let update = self.update;
         let results = run_all(&test_cases, binary, update);
 
-        let passed = results.iter().filter(|r| matches!(r, TestOutcome::Pass)).count();
+        let passed = results
+            .iter()
+            .filter(|r| matches!(r, TestOutcome::Pass))
+            .count();
         let failed = results.len() - passed;
 
         if failed == 0 {
@@ -107,7 +124,7 @@ impl Suite {
             Ok(())
         } else {
             eprintln!("\ntest result: FAILED. {passed} passed; {failed} failed");
-            Err(())
+            Err(TestsFailed)
         }
     }
 }
@@ -144,7 +161,10 @@ fn run_all(cases: &[TestCase], binary: &Path, update: bool) -> Vec<TestOutcome> 
 #[cfg(feature = "parallel")]
 fn run_all(cases: &[TestCase], binary: &Path, update: bool) -> Vec<TestOutcome> {
     use rayon::prelude::*;
-    cases.par_iter().map(|tc| run_one(tc, binary, update)).collect()
+    cases
+        .par_iter()
+        .map(|tc| run_one(tc, binary, update))
+        .collect()
 }
 
 fn run_one(tc: &TestCase, binary: &Path, update: bool) -> TestOutcome {
@@ -170,7 +190,11 @@ fn run_one(tc: &TestCase, binary: &Path, update: bool) -> TestOutcome {
                     TestOutcome::Pass => {
                         eprintln!("test {} ... ok", tc.path.display());
                     }
-                    TestOutcome::Fail { path, diffs, exit_mismatch } => {
+                    TestOutcome::Fail {
+                        path,
+                        diffs,
+                        exit_mismatch,
+                    } => {
                         eprintln!("test {} ... FAIL", path.display());
                         for d in diffs {
                             print_diff(d.stream, &d.expected, &d.actual);
@@ -195,10 +219,11 @@ fn run_one(tc: &TestCase, binary: &Path, update: bool) -> TestOutcome {
 }
 
 /// Convenience: load config from ouro.toml (searched upward from CWD).
-pub fn run_from_cwd() -> Result<(), ()> {
+pub fn run_from_cwd() -> Result<(), TestsFailed> {
     let cwd = std::env::current_dir().unwrap_or_default();
     let config_path = config::find_config_file(&cwd).ok_or_else(|| {
         eprintln!("ouro: no ouro.toml found");
+        TestsFailed
     })?;
     run(config_path)
 }

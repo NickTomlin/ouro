@@ -1,6 +1,6 @@
+use crate::parser::TestCase;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use crate::parser::TestCase;
 
 #[derive(Debug)]
 pub struct Diff {
@@ -20,10 +20,7 @@ pub enum TestOutcome {
 }
 
 pub fn run_test(tc: &TestCase, binary: &Path) -> Result<TestOutcome, std::io::Error> {
-    let output = Command::new(binary)
-        .args(&tc.args)
-        .arg(&tc.path)
-        .output()?;
+    let output = Command::new(binary).args(&tc.args).arg(&tc.path).output()?;
 
     let mut diffs = Vec::new();
 
@@ -73,10 +70,7 @@ pub fn run_test(tc: &TestCase, binary: &Path) -> Result<TestOutcome, std::io::Er
 
 /// Update the test file in-place: rewrite expected stdout/stderr/exit with actual output.
 pub fn update_test(tc: &TestCase, binary: &Path) -> Result<(), Box<dyn std::error::Error>> {
-    let output = Command::new(binary)
-        .args(&tc.args)
-        .arg(&tc.path)
-        .output()?;
+    let output = Command::new(binary).args(&tc.args).arg(&tc.path).output()?;
 
     let actual_stdout = String::from_utf8_lossy(&output.stdout).into_owned();
     let actual_stderr = String::from_utf8_lossy(&output.stderr).into_owned();
@@ -248,7 +242,13 @@ fn format_directive(prefix: &str, keyword: &str, content: &str) -> String {
 mod tests {
     use super::*;
 
-    fn rewrite(content: &str, stdout: Option<&str>, stderr: Option<&str>, exit: i32, write_exit: bool) -> String {
+    fn rewrite(
+        content: &str,
+        stdout: Option<&str>,
+        stderr: Option<&str>,
+        exit: i32,
+        write_exit: bool,
+    ) -> String {
         rewrite_directives(content, "// ", stdout, stderr, exit, write_exit)
     }
 
@@ -267,7 +267,10 @@ mod tests {
         let args_pos = result.find("// args:").unwrap();
         let out_pos = result.find("// out:").unwrap();
         assert!(args_pos < out_pos, "args should precede out:\n{result}");
-        assert!(result.contains("// args: --foo"), "args preserved: {result}");
+        assert!(
+            result.contains("// args: --foo"),
+            "args preserved: {result}"
+        );
         assert!(result.contains("// out: new"), "out updated: {result}");
         assert!(!result.contains("old"), "old value removed: {result}");
     }
@@ -277,7 +280,10 @@ mod tests {
         let content = "// out: first\n// out: second\ncode here\n";
         let result = rewrite(content, Some("new value"), None, 0, false);
         let count = result.matches("// out:").count();
-        assert_eq!(count, 1, "expected exactly one out: directive, got:\n{result}");
+        assert_eq!(
+            count, 1,
+            "expected exactly one out: directive, got:\n{result}"
+        );
         assert!(result.contains("// out: new value"), "got: {result}");
     }
 
@@ -315,8 +321,14 @@ mod tests {
         let content = "// out:\n// line one\n// line two\n// :out\ncode here\n";
         let result = rewrite(content, Some("new value"), None, 0, false);
         assert!(result.contains("// out: new value"), "got: {result}");
-        assert!(!result.contains("line one"), "old content removed: {result}");
-        assert!(!result.contains("line two"), "old content removed: {result}");
+        assert!(
+            !result.contains("line one"),
+            "old content removed: {result}"
+        );
+        assert!(
+            !result.contains("line two"),
+            "old content removed: {result}"
+        );
         assert!(!result.contains(":out"), "block close removed: {result}");
     }
 

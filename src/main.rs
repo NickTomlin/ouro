@@ -5,39 +5,82 @@ fn main() {
     use std::path::PathBuf;
 
     #[derive(Parser)]
-    #[command(name = "ouro", about = "Golden test runner for language hackers")]
+    #[command(
+        name = "ouro",
+        about = "Golden test runner for language hackers",
+        long_about = "Golden test runner for language hackers.\n\
+            \n\
+            ouro runs a binary against source files and compares stdout, stderr, and exit\n\
+            code to expectations embedded in the file's own comment lines. No separate\n\
+            fixture files — test expectations live next to the source they describe.\n\
+            \n\
+            DIRECTIVE SYNTAX\n\
+            \n\
+            Each test file is a plain source file with comment lines containing directives.\n\
+            The default comment prefix is \"// \" (configurable with --prefix).\n\
+            \n\
+              // out: hello world        stdout must equal \"hello world\"\n\
+              // err: oops               stderr must equal \"oops\"\n\
+              // exit: 1                 expected exit code (default 0)\n\
+              // args: --flag value      flags appended to the binary invocation\n\
+            \n\
+            Multi-line blocks use an open/close pair:\n\
+            \n\
+              // out:\n\
+              // line one\n\
+              // line two\n\
+              // :out\n\
+            \n\
+            Streams not mentioned in directives are not checked.\n\
+            \n\
+            INVOCATION\n\
+            \n\
+            For each test file ouro calls:  <binary> [args...] <file>\n\
+            \n\
+            CONFIG FILE\n\
+            \n\
+            ouro.toml is searched upward from the current directory:\n\
+            \n\
+              binary = \"target/debug/myc\"\n\
+              files  = \"tests/**/*.myc\"\n\
+              prefix = \"// \"\n\
+              jobs   = 4\n\
+            \n\
+            CLI flags always override ouro.toml. Run 'ouro llm-context' for a full spec."
+    )]
     struct Cli {
         #[command(subcommand)]
         command: Option<Commands>,
 
-        /// Binary to test
+        /// Path to the binary under test (e.g. target/debug/myc). Overrides ouro.toml.
         #[arg(long)]
         binary: Option<PathBuf>,
 
-        /// Test file glob
+        /// Glob of test files (e.g. "tests/**/*.myc"). Overrides ouro.toml.
         #[arg(long)]
         files: Option<String>,
 
-        /// Comment prefix
+        /// Comment prefix used to identify directive lines (e.g. "// ", "# ", "-- "). Overrides ouro.toml.
         #[arg(long)]
         prefix: Option<String>,
 
-        /// Overwrite expected output with actual
+        /// Rewrite directive lines in each file with the actual output instead of failing.
+        /// Use after intentional output changes; review results with `git diff`.
         #[arg(long, default_value_t = false)]
         update: bool,
 
-        /// Parallel workers (default: num CPUs)
+        /// Number of parallel workers (default: number of logical CPUs). Overrides ouro.toml.
         #[arg(long)]
         jobs: Option<usize>,
 
-        /// Path to ouro.toml (default: search upward from CWD)
+        /// Path to ouro.toml config file. Defaults to searching upward from the current directory.
         #[arg(long)]
         config: Option<PathBuf>,
     }
 
     #[derive(Subcommand)]
     enum Commands {
-        /// Print a compact spec suitable for pasting into an LLM context window
+        /// Print a self-contained spec of ouro's directive syntax and CLI, suitable for an LLM context window
         LlmContext,
     }
 
@@ -86,7 +129,7 @@ fn main() {
 
     match suite.run() {
         Ok(()) => std::process::exit(0),
-        Err(()) => std::process::exit(1),
+        Err(_) => std::process::exit(1),
     }
 }
 
