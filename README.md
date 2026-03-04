@@ -131,15 +131,21 @@ cargo test golden
 
 ## CLI
 
-Install the `ouro` binary with:
+Install the `ouro` binary from crates.io:
 
 ```
 cargo install ouro --features binary
 ```
 
+Or build and run from a local checkout:
+
+```
+cargo build --release --features binary
+./target/release/ouro --help
+```
+
 ```
 ouro [OPTIONS]
-ouro llm-context
 
   --binary <PATH>    Binary to test
   --files <GLOB>     Test file glob     [default: tests/**/*]
@@ -147,6 +153,9 @@ ouro llm-context
   --update           Overwrite expected output with actual
   --jobs <N>         Parallel workers   [default: num CPUs]
   --config <PATH>    Path to ouro.toml  [default: search upward from CWD]
+
+Commands:
+  llm-context        Print a self-contained spec suitable for an LLM context window
 ```
 
 Exit 0 if all tests pass, 1 if any fail.
@@ -251,7 +260,7 @@ src/
   runner.rs    spawn binary, capture output, compare, --update rewriter
   diff.rs      colored unified diff output
   main.rs      CLI entry point (binary feature)
-k
+
 tests/
   integration.rs       end-to-end integration tests
   fixtures/myc         minimal fake compiler used by integration tests
