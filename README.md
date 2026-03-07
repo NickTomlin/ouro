@@ -267,6 +267,30 @@ tests/
 
 ---
 
+## Releasing
+
+Releases are managed by [release-plz](https://release-plz.dev). No separate release branch is needed.
+
+### How it works
+
+1. When a PR is merged to `main`, release-plz opens a **release PR** that bumps the version in `Cargo.toml` and updates `CHANGELOG.md`.
+2. When that release PR is merged, release-plz:
+   - Creates a GitHub release with the generated changelog
+   - Publishes the crate to [crates.io](https://crates.io)
+3. The `release.yml` workflow triggers on the published GitHub release and builds cross-platform binaries (`linux-x86_64`, `macos-x86_64`, `macos-aarch64`, `windows-x86_64`), attaching them to the release.
+
+### Required secrets
+
+Add these in **Settings → Secrets and variables → Actions**:
+
+| Secret | Where to get it |
+|--------|----------------|
+| `CARGO_REGISTRY_TOKEN` | [crates.io](https://crates.io/settings/tokens) → New token (scope: `publish-new`, `publish-update`) |
+
+`GITHUB_TOKEN` is provided automatically by GitHub Actions.
+
+---
+
 ## Prior art
 
 [jfecher/golden-tests](https://github.com/jfecher/golden-tests)

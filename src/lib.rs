@@ -121,6 +121,7 @@ impl Suite {
         let failed = results.len() - passed;
 
         if failed == 0 {
+            eprintln!("test result: ok. {passed} passed; 0 failed");
             Ok(())
         } else {
             eprintln!("test result: FAILED. {passed} passed; {failed} failed");
