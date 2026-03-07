@@ -3,7 +3,9 @@ name = "ouro"
 version = "0.1.0"
 edition = "2021"
 description = "A golden test runner for language hackers"
+repository = "https://github.com/NickTomlin/ouro"
 license = "MIT"
+readme = "README.md"
 keywords = ["testing", "golden", "compiler", "language"]
 categories = ["development-tools::testing"]
 
