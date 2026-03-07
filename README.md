@@ -1,4 +1,4 @@
-# ouro
+# 🥇 ouro 🥇
 
 A golden test runner for language hackers. Embed test expectations directly in your source files as comments — no separate fixture files, no test harness boilerplate.
 
