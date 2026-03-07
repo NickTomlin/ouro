@@ -6,8 +6,8 @@ fn golden_suite_passes() {
     let manifest_dir = env!("CARGO_MANIFEST_DIR");
 
     ouro::Suite::new()
-        .binary(std::path::Path::new(manifest_dir).join("tests/fixtures/myc"))
-        .files(format!("{manifest_dir}/tests/golden/*.myc"))
+        .binary(std::path::Path::new(manifest_dir).join("tests/fixtures/example"))
+        .files(format!("{manifest_dir}/tests/golden/*.example"))
         .prefix("// ")
         .run()
         .expect("golden test suite should pass");
@@ -19,14 +19,14 @@ fn golden_suite_detects_failure() {
     use tempfile::NamedTempFile;
 
     // Create a test file with wrong expected output
-    let mut f = NamedTempFile::with_suffix(".myc").unwrap();
+    let mut f = NamedTempFile::with_suffix(".example").unwrap();
     writeln!(f, r#"// out: wrong expected"#).unwrap();
     writeln!(f, r#"print "actual output""#).unwrap();
     let path = f.path().to_path_buf();
 
     let manifest_dir = env!("CARGO_MANIFEST_DIR");
     let result = ouro::Suite::new()
-        .binary(std::path::Path::new(manifest_dir).join("tests/fixtures/myc"))
+        .binary(std::path::Path::new(manifest_dir).join("tests/fixtures/example"))
         .files(path.to_str().unwrap())
         .prefix("// ")
         .run();

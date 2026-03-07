@@ -4,6 +4,7 @@ pub mod parser;
 pub mod patterns;
 pub mod runner;
 
+use colored::Colorize;
 use config::Config;
 use diff::{print_diff, print_exit_mismatch};
 use parser::{parse_file, TestCase};
@@ -120,10 +121,9 @@ impl Suite {
         let failed = results.len() - passed;
 
         if failed == 0 {
-            eprintln!("\ntest result: ok. {passed} passed; 0 failed");
             Ok(())
         } else {
-            eprintln!("\ntest result: FAILED. {passed} passed; {failed} failed");
+            eprintln!("test result: FAILED. {passed} passed; {failed} failed");
             Err(TestsFailed)
         }
     }
@@ -187,15 +187,14 @@ fn run_one(tc: &TestCase, binary: &Path, update: bool) -> TestOutcome {
         match run_test(tc, binary) {
             Ok(outcome) => {
                 match &outcome {
-                    TestOutcome::Pass => {
-                        eprintln!("test {} ... ok", tc.path.display());
-                    }
+                    TestOutcome::Pass => {}
                     TestOutcome::Fail {
                         path,
                         diffs,
                         exit_mismatch,
                     } => {
-                        eprintln!("test {} ... FAIL", path.display());
+                        eprintln!("\n{} {}", "FAIL".red().bold(), path.display());
+                        eprintln!();
                         for d in diffs {
                             print_diff(d.stream, &d.expected, &d.actual);
                         }
