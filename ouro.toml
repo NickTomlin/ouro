@@ -1,3 +1,3 @@
-binary = "tests/fixtures/myc"
-files  = "tests/golden/*.myc"
+binary = "tests/fixtures/example"
+files  = "tests/golden/*.example"
 prefix = "// "
