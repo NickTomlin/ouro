@@ -12,6 +12,7 @@ pub struct Diff {
 #[derive(Debug)]
 pub enum TestOutcome {
     Pass,
+    Updated,
     Fail {
         path: PathBuf,
         diffs: Vec<Diff>,

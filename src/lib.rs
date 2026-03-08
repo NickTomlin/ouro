@@ -59,13 +59,13 @@ pub mod config;
 pub mod diff;
 pub mod parser;
 pub mod patterns;
+pub mod reporter;
 pub mod runner;
 
-use colored::Colorize;
 use config::Config;
-use diff::{print_diff, print_exit_mismatch};
 use parser::{parse_file, TestCase};
 use patterns::DefaultPatterns;
+use reporter::{ConsoleReporter, Reporter};
 use runner::{run_test, update_test, TestOutcome};
 
 use std::path::{Path, PathBuf};
@@ -168,20 +168,20 @@ impl Suite {
             return Ok(());
         }
 
+        let reporter = ConsoleReporter;
         let update = self.update;
-        let results = run_all(&test_cases, binary, update);
+        let results = run_all(&test_cases, binary, update, &reporter);
 
         let passed = results
             .iter()
-            .filter(|r| matches!(r, TestOutcome::Pass))
+            .filter(|r| matches!(r, TestOutcome::Pass | TestOutcome::Updated))
             .count();
         let failed = results.len() - passed;
 
+        reporter.on_suite_complete(passed, failed);
         if failed == 0 {
-            eprintln!("test result: ok. {passed} passed; 0 failed");
             Ok(())
         } else {
-            eprintln!("test result: FAILED. {passed} passed; {failed} failed");
             Err(TestsFailed)
         }
     }
@@ -212,26 +212,36 @@ fn collect_tests(glob_pattern: &str, patterns: &DefaultPatterns) -> Vec<TestCase
 }
 
 #[cfg(not(feature = "parallel"))]
-fn run_all(cases: &[TestCase], binary: &Path, update: bool) -> Vec<TestOutcome> {
-    cases.iter().map(|tc| run_one(tc, binary, update)).collect()
-}
-
-#[cfg(feature = "parallel")]
-fn run_all(cases: &[TestCase], binary: &Path, update: bool) -> Vec<TestOutcome> {
-    use rayon::prelude::*;
+fn run_all(
+    cases: &[TestCase],
+    binary: &Path,
+    update: bool,
+    reporter: &dyn Reporter,
+) -> Vec<TestOutcome> {
     cases
-        .par_iter()
-        .map(|tc| run_one(tc, binary, update))
+        .iter()
+        .map(|tc| run_one(tc, binary, update, reporter))
         .collect()
 }
 
-fn run_one(tc: &TestCase, binary: &Path, update: bool) -> TestOutcome {
-    if update {
+#[cfg(feature = "parallel")]
+fn run_all(
+    cases: &[TestCase],
+    binary: &Path,
+    update: bool,
+    reporter: &dyn Reporter,
+) -> Vec<TestOutcome> {
+    use rayon::prelude::*;
+    cases
+        .par_iter()
+        .map(|tc| run_one(tc, binary, update, reporter))
+        .collect()
+}
+
+fn run_one(tc: &TestCase, binary: &Path, update: bool, reporter: &dyn Reporter) -> TestOutcome {
+    let outcome = if update {
         match update_test(tc, binary) {
-            Ok(()) => {
-                eprintln!("updated {}", tc.path.display());
-                TestOutcome::Pass
-            }
+            Ok(()) => TestOutcome::Updated,
             Err(e) => {
                 eprintln!("ouro: failed to update {}: {e}", tc.path.display());
                 TestOutcome::Fail {
@@ -243,26 +253,7 @@ fn run_one(tc: &TestCase, binary: &Path, update: bool) -> TestOutcome {
         }
     } else {
         match run_test(tc, binary) {
-            Ok(outcome) => {
-                match &outcome {
-                    TestOutcome::Pass => {}
-                    TestOutcome::Fail {
-                        path,
-                        diffs,
-                        exit_mismatch,
-                    } => {
-                        eprintln!("\n{} {}", "FAIL".red().bold(), path.display());
-                        eprintln!();
-                        for d in diffs {
-                            print_diff(d.stream, &d.expected, &d.actual);
-                        }
-                        if let Some((exp, act)) = exit_mismatch {
-                            print_exit_mismatch(*exp, *act);
-                        }
-                    }
-                }
-                outcome
-            }
+            Ok(outcome) => outcome,
             Err(e) => {
                 eprintln!("ouro: failed to run {}: {e}", tc.path.display());
                 TestOutcome::Fail {
@@ -272,7 +263,9 @@ fn run_one(tc: &TestCase, binary: &Path, update: bool) -> TestOutcome {
                 }
             }
         }
-    }
+    };
+    reporter.on_test_complete(&tc.path, &outcome);
+    outcome
 }
 
 /// Convenience: load config from ouro.toml (searched upward from CWD).
