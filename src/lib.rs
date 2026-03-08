@@ -212,12 +212,25 @@ fn collect_tests(glob_pattern: &str, patterns: &DefaultPatterns) -> Vec<TestCase
 }
 
 #[cfg(not(feature = "parallel"))]
-fn run_all(cases: &[TestCase], binary: &Path, update: bool, reporter: &dyn Reporter) -> Vec<TestOutcome> {
-    cases.iter().map(|tc| run_one(tc, binary, update, reporter)).collect()
+fn run_all(
+    cases: &[TestCase],
+    binary: &Path,
+    update: bool,
+    reporter: &dyn Reporter,
+) -> Vec<TestOutcome> {
+    cases
+        .iter()
+        .map(|tc| run_one(tc, binary, update, reporter))
+        .collect()
 }
 
 #[cfg(feature = "parallel")]
-fn run_all(cases: &[TestCase], binary: &Path, update: bool, reporter: &dyn Reporter) -> Vec<TestOutcome> {
+fn run_all(
+    cases: &[TestCase],
+    binary: &Path,
+    update: bool,
+    reporter: &dyn Reporter,
+) -> Vec<TestOutcome> {
     use rayon::prelude::*;
     cases
         .par_iter()
