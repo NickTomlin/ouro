@@ -1,28 +1,29 @@
 # 🥇 ouro 🥇
 
-A golden test runner for language authors. Embed test expectations directly in your source files as comments — no separate fixture files, no test harness boilerplate.
-
-```
-test tests/golden/simple.example ... ok
-test tests/golden/errors.example ... ok
-test tests/golden/multiline.example ... ok
-
-test result: ok. 3 passed; 0 failed
-```
-
----
-
-## Quick start
-
-### 1. Install
+A golden test runner for language authors. Embed test expectations directly in your source files as comments — no framework required.
 
 ```sh
-curl -sSfL https://raw.githubusercontent.com/NickTomlin/ouro/main/install.sh | bash
+test tests/golden/errors.example ... ok
+test tests/golden/multiline.example ... ok
+FAIL tests/golden/simple.example
+
+  stdout:
+    - wrong expected output
+    + hello world
+
+test result: FAILED. 2 passed; 1 failed
 ```
 
-### 2. Annotate your test files
+# Quick start
 
-ouro runs `<binary> <test-file>` for each file and compares its output to directives written in the file's own comments:
+### Install
+
+        ```sh
+        curl -sSfL https://raw.githubusercontent.com/NickTomlin/ouro/main/install.sh | bash
+        ```
+(See [github actions](#ci) integration for CI/CD).
+
+### Create and annotate your test files
 
 ```
 // out: hello world
@@ -45,42 +46,10 @@ error "warning: unused variable 'x'"
 ouro --binary ./example --files "tests/**/*.example"
 ```
 
-Or add an `ouro.toml` to avoid repeating flags:
+You can use the [`ouro.toml` config file](#configuration) to avoid repeating flags.
 
-```toml
-binary = "./example"
-files  = "tests/**/*.example"
-```
 
-Then just run `ouro`. Exit 0 if all tests pass, 1 if any fail.
-
-### Failing tests
-
-When output doesn't match, ouro shows a diff:
-
-```
-FAIL tests/golden/simple.example
-
-  stdout:
-    - wrong expected output
-    + hello world
-
-test result: FAILED. 2 passed; 1 failed
-```
-
-An exit code mismatch looks like:
-
-```
-FAIL tests/golden/exit_nonzero.example
-
-  exit code: 0 → 42
-
-test result: FAILED. 2 passed; 1 failed
-```
-
----
-
-## Directives
+# Directives
 
 | Directive | Form | Meaning |
 |-----------|------|---------|
@@ -110,6 +79,21 @@ Block content can contain anything — including `}`, `//`, or other tokens from
 
 ## Configuration
 
+### CLI flags
+
+All config options can be passed as flags and override `ouro.toml`:
+
+```
+ouro [OPTIONS]
+
+  --binary <PATH>    Binary to test
+  --files <GLOB>     Test file glob
+  --prefix <STR>     Comment prefix
+  --update           Overwrite expected output with actual
+  --jobs <N>         Parallel workers
+  --config <PATH>    Path to ouro.toml  [default: search upward from CWD]
+```
+
 ### `ouro.toml`
 
 ```toml
@@ -127,21 +111,6 @@ Match the comment syntax of your language:
 prefix = "# "    # Python / Ruby / shell
 prefix = "-- "   # Lua / Haskell
 prefix = "; "    # Assembly / .ini
-```
-
-### CLI flags
-
-All config options can be passed as flags and override `ouro.toml`:
-
-```
-ouro [OPTIONS]
-
-  --binary <PATH>    Binary to test
-  --files <GLOB>     Test file glob
-  --prefix <STR>     Comment prefix
-  --update           Overwrite expected output with actual
-  --jobs <N>         Parallel workers
-  --config <PATH>    Path to ouro.toml  [default: search upward from CWD]
 ```
 
 ### Updating expectations
