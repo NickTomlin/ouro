@@ -1,3 +1,60 @@
+//! Golden test runner for language authors.
+//!
+//! ouro runs a binary against a set of test files and compares its output to
+//! expectations embedded in the files' own comments. See the
+//! [README](https://github.com/NickTomlin/ouro) for the full directive reference
+//! and CLI documentation.
+//!
+//! This crate lets you drive ouro from a `cargo test` test function as an
+//! alternative to (or alongside) the standalone CLI.
+//!
+//! # Setup
+//!
+//! Add to `Cargo.toml`:
+//!
+//! ```toml
+//! [dev-dependencies]
+//! ouro = "0.1"
+//! ```
+//!
+//! Create `ouro.toml` in your project root:
+//!
+//! ```toml
+//! binary = "target/debug/myc"
+//! files  = "tests/**/*.myc"
+//! ```
+//!
+//! Write a test function:
+//!
+//! ```rust,no_run
+//! #[test]
+//! fn golden() {
+//!     ouro::run_from_cwd().unwrap();
+//! }
+//! ```
+//!
+//! # Builder
+//!
+//! Use [`Suite`] to configure programmatically instead of (or to override) `ouro.toml`:
+//!
+//! ```rust,no_run
+//! #[test]
+//! fn golden() {
+//!     ouro::Suite::new()
+//!         .binary("target/debug/myc")
+//!         .files("tests/**/*.myc")
+//!         .run()
+//!         .unwrap();
+//! }
+//! ```
+//!
+//! # Cargo features
+//!
+//! | Feature | Default | Description |
+//! |---------|---------|-------------|
+//! | `parallel` | yes | Parallel test execution via Rayon |
+//! | `binary` | no | Build the `ouro` CLI binary (implies `parallel`) |
+
 pub mod config;
 pub mod diff;
 pub mod parser;

@@ -1,6 +1,6 @@
 # 🥇 ouro 🥇
 
-A golden test runner for language hackers. Embed test expectations directly in your source files as comments — no separate fixture files, no test harness boilerplate.
+A golden test runner for language authors. Embed test expectations directly in your source files as comments — no separate fixture files, no test harness boilerplate.
 
 ```
 test tests/golden/simple.myc ... ok
@@ -12,29 +12,40 @@ test result: ok. 3 passed; 0 failed
 
 ---
 
-## How it works
+## Quick start
 
-ouro runs a binary (your compiler, interpreter, or language tool) against each test file and compares the output to expectations written in the file's own comments.
+### 1. Install
+
+```sh
+curl -sSfL https://raw.githubusercontent.com/NickTomlin/ouro/main/install.sh | bash
+```
+
+### 2. Create `ouro.toml`
+
+```toml
+binary = "./myc"            # your compiler or interpreter
+files  = "tests/**/*.myc"  # glob of test files
+```
+
+### 3. Annotate your test files
+
+ouro runs `<binary> <test-file>` for each file and compares its output to directives written in the file's own comments:
 
 ```javascript
 // args: --optimize
 // out: 42
-// :out
+
 let x = 42
 console.log(x)
 ```
 
-Directives live in comment lines starting with a configurable prefix (`// ` by default). Everything else is source code passed to your binary.
-
-### Binary invocation
-
-For each test file ouro calls:
+### 4. Run
 
 ```
-<binary> [args...] <test-file-path>
+ouro
 ```
 
-The test file path is always the last argument. `args` come from `args:` directives in the file. If there are none, ouro calls `<binary> <test-file-path>` with no extra flags.
+That's it. Exit 0 if all tests pass, 1 if any fail.
 
 ---
 
@@ -50,23 +61,9 @@ The test file path is always the last argument. `args` come from `args:` directi
 | `args:` / `:args` | block | Multi-line args, one arg per line |
 | `exit: <n>` | inline | Expected exit code (default: `0`) |
 
-Omitting `out:` or `err:` means that stream is not checked at all.
+Omitting `out:` or `err:` means that stream is not checked. Trailing newlines are trimmed before comparing; everything else is an exact match.
 
-### Comparison
-
-Trailing newlines are trimmed from both sides before comparing. Everything else is an exact match — no whitespace normalization, no regex.
-
-### Inline shorthand
-
-```python
-# args: --run
-# out: hello world
-# exit: 0
-
-print("hello world")
-```
-
-### Multi-line block
+**Multi-line block:**
 
 ```c
 // out:
@@ -80,78 +77,41 @@ Block content can contain anything — including `}`, `//`, or other tokens from
 
 ---
 
-## Setup
+## Configuration
 
-### 1. Add to `Cargo.toml`
-
-```toml
-[dev-dependencies]
-ouro = "0.1"
-```
-
-### 2. Create `ouro.toml` in your project root
+### `ouro.toml`
 
 ```toml
-binary = "target/debug/myc"   # path to your binary
-files  = "tests/**/*.myc"     # glob of test files
-prefix = "// "                # comment prefix (default: "// ")
+binary = "./myc"           # required: path to your binary
+files  = "tests/**/*.myc" # required: glob of test files
+prefix = "// "             # comment prefix (default: "// ")
+jobs   = 4                 # parallel workers (default: num CPUs)
 ```
 
-### 3. Write a test
+### Comment prefix
 
-```rust
-// tests/golden.rs
-#[test]
-fn golden() {
-    ouro::run_from_cwd().unwrap();
-}
+Match the comment syntax of your language:
+
+```toml
+prefix = "# "    # Python / Ruby / shell
+prefix = "-- "   # Lua / Haskell
+prefix = "; "    # Assembly / .ini
 ```
 
-Or use the builder directly:
+### CLI flags
 
-```rust
-#[test]
-fn golden() {
-    ouro::Suite::new()
-        .binary("target/debug/myc")
-        .files("tests/**/*.myc")
-        .prefix("// ")
-        .run()    // Ok(()) = all passed; Err(()) = failures (already printed to stderr)
-        .unwrap();
-}
-```
-
-### 4. Run
-
-```
-cargo test golden
-```
-
----
-
-## CLI
-
-Install the `ouro` binary with:
-
-```
-cargo install ouro --features binary
-```
+All config options can be passed as flags and override `ouro.toml`:
 
 ```
 ouro [OPTIONS]
-ouro llm-context
 
   --binary <PATH>    Binary to test
-  --files <GLOB>     Test file glob     [default: tests/**/*]
-  --prefix <STR>     Comment prefix     [default: "// "]
+  --files <GLOB>     Test file glob
+  --prefix <STR>     Comment prefix
   --update           Overwrite expected output with actual
-  --jobs <N>         Parallel workers   [default: num CPUs]
+  --jobs <N>         Parallel workers
   --config <PATH>    Path to ouro.toml  [default: search upward from CWD]
 ```
-
-Exit 0 if all tests pass, 1 if any fail.
-
-`ouro llm-context` prints a compact plain-text spec of directives, invocation contract, comparison rules, and the library API — suitable for pasting into an LLM context window.
 
 ### Updating expectations
 
@@ -165,129 +125,31 @@ This rewrites the directive lines in each test file with the actual output from 
 
 ---
 
-## Changing the comment prefix
+## CI
 
-For languages with a different comment syntax, set `prefix` in `ouro.toml` or via `--prefix`:
+**GitHub Actions:**
 
-```toml
-# Python / Ruby / shell
-prefix = "# "
+```yaml
+- name: Install ouro
+  run: curl -sSfL https://raw.githubusercontent.com/NickTomlin/ouro/main/install.sh | bash
+
+- name: Run golden tests
+  run: ouro
 ```
 
-```toml
--- Lua / Haskell
-prefix = "-- "
-```
-
-```toml
-; Assembly / .ini
-prefix = "; "
-```
+On Windows runners, or to pin a specific version, download a release asset directly. Each [GitHub release](https://github.com/NickTomlin/ouro/releases) includes: `ouro-linux-x86_64`, `ouro-macos-x86_64`, `ouro-macos-aarch64`, `ouro-windows-x86_64.exe`.
 
 ---
 
-## Parallelism
+## Rust crate
 
-Tests run in parallel by default using Rayon. Control the thread count:
-
-```toml
-# ouro.toml
-jobs = 4
-```
-
-```
-ouro --jobs 4
-```
-
-Disable parallelism entirely by depending on ouro without the `parallel` feature:
-
-```toml
-ouro = { version = "0.1", default-features = false }
-```
+See [docs.rs/ouro](https://docs.rs/ouro) for the Rust API.
 
 ---
 
-## Cargo features
+## Contributing
 
-| Feature | Default | Description |
-|---------|---------|-------------|
-| `parallel` | yes | Parallel test execution via Rayon |
-| `binary` | no | Build the `ouro` CLI binary (implies `parallel`) |
-
----
-
-## Development
-
-### Prerequisites
-
-- Rust 1.70+ (stable)
-
-### Build
-
-```
-cargo build
-cargo build --features binary   # includes the CLI
-```
-
-### Test
-
-```
-cargo test
-```
-
-The test suite includes:
-- Unit tests for the parser state machine (`src/parser.rs`)
-- Unit tests for the output rewriter (`src/runner.rs`)
-- Integration tests that run the full suite against a small fake compiler (`tests/integration.rs`)
-
-### Project layout
-
-```
-src/
-  lib.rs       public API: Suite builder, run(), run_from_cwd()
-  config.rs    ouro.toml parsing, upward config search
-  patterns.rs  PatternSet trait + DefaultPatterns
-  parser.rs    line scanner / state machine → TestCase
-  runner.rs    spawn binary, capture output, compare, --update rewriter
-  diff.rs      colored unified diff output
-  main.rs      CLI entry point (binary feature)
-k
-tests/
-  integration.rs       end-to-end integration tests
-  fixtures/myc         minimal fake compiler used by integration tests
-  golden/              golden test files for the integration suite
-```
-
-### Adding a new directive
-
-1. Add a method to `PatternSet` in `src/patterns.rs`
-2. Implement it in `DefaultPatterns`
-3. Handle the new state/transition in `src/parser.rs`
-4. Add a unit test in the `parser::tests` module
-
----
-
-## Releasing
-
-Releases are managed by [release-plz](https://release-plz.dev). No separate release branch is needed.
-
-### How it works
-
-1. When a PR is merged to `main`, release-plz opens a **release PR** that bumps the version in `Cargo.toml` and updates `CHANGELOG.md`.
-2. When that release PR is merged, release-plz:
-   - Creates a GitHub release with the generated changelog
-   - Publishes the crate to [crates.io](https://crates.io)
-3. The `release.yml` workflow triggers on the published GitHub release and builds cross-platform binaries (`linux-x86_64`, `macos-x86_64`, `macos-aarch64`, `windows-x86_64`), attaching them to the release.
-
-### Required secrets
-
-Add these in **Settings → Secrets and variables → Actions**:
-
-| Secret | Where to get it |
-|--------|----------------|
-| `CARGO_REGISTRY_TOKEN` | [crates.io](https://crates.io/settings/tokens) → New token (scope: `publish-new`, `publish-update`) |
-
-`GITHUB_TOKEN` is provided automatically by GitHub Actions.
+See [DEVELOPMENT.md](DEVELOPMENT.md) for build instructions, project layout, and release process.
 
 ---
 
