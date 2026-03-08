@@ -13,7 +13,9 @@ pub struct ConsoleReporter;
 impl Reporter for ConsoleReporter {
     fn on_test_complete(&self, path: &Path, outcome: &TestOutcome) {
         match outcome {
-            TestOutcome::Pass => {}
+            TestOutcome::Pass => {
+                eprintln!("test {} ... ok", path.display());
+            }
             TestOutcome::Updated => {
                 eprintln!("updated {}", path.display());
             }
