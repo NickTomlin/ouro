@@ -75,9 +75,7 @@ Omitting `out:` or `err:` means that stream is not checked. Trailing newlines ar
 
 Block content can contain anything — including `}`, `//`, or other tokens from your language — without ambiguity.
 
----
-
-## Configuration
+# Configuration
 
 ### CLI flags
 
@@ -123,7 +121,8 @@ ouro --update
 
 This rewrites the directive lines in each test file with the actual output from your binary. Review the diff with `git diff`, then commit.
 
----
+
+# Other usage
 
 ## CI
 
@@ -139,7 +138,6 @@ This rewrites the directive lines in each test file with the actual output from 
 
 On Windows runners, or to pin a specific version, download a release asset directly. Each [GitHub release](https://github.com/NickTomlin/ouro/releases) includes: `ouro-linux-x86_64`, `ouro-macos-x86_64`, `ouro-macos-aarch64`, `ouro-windows-x86_64.exe`.
 
----
 
 ## Rust crate
 
@@ -147,16 +145,16 @@ See [docs.rs/ouro](https://docs.rs/ouro) for the Rust API.
 
 ---
 
-## Contributing
+# Contributing
 
 See [DEVELOPMENT.md](DEVELOPMENT.md) for build instructions, project layout, and release process.
 
 ---
 
-## Prior art
+# Prior art
 
 [jfecher/golden-tests](https://github.com/jfecher/golden-tests)
 
-## License
+# License
 
 MIT
