@@ -3,9 +3,9 @@
 A golden test runner for language authors. Embed test expectations directly in your source files as comments — no separate fixture files, no test harness boilerplate.
 
 ```
-test tests/golden/simple.myc ... ok
-test tests/golden/errors.myc ... ok
-test tests/golden/multiline.myc ... ok
+test tests/golden/simple.example ... ok
+test tests/golden/errors.example ... ok
+test tests/golden/multiline.example ... ok
 
 test result: ok. 3 passed; 0 failed
 ```
@@ -20,32 +20,63 @@ test result: ok. 3 passed; 0 failed
 curl -sSfL https://raw.githubusercontent.com/NickTomlin/ouro/main/install.sh | bash
 ```
 
-### 2. Create `ouro.toml`
-
-```toml
-binary = "./myc"            # your compiler or interpreter
-files  = "tests/**/*.myc"  # glob of test files
-```
-
-### 3. Annotate your test files
+### 2. Annotate your test files
 
 ouro runs `<binary> <test-file>` for each file and compares its output to directives written in the file's own comments:
 
-```javascript
-// args: --optimize
-// out: 42
+```
+// out: hello world
 
-let x = 42
-console.log(x)
+print "hello world"
 ```
 
-### 4. Run
+Or check stderr and exit code together:
 
 ```
-ouro
+// err: warning: unused variable 'x'
+// exit: 1
+
+error "warning: unused variable 'x'"
 ```
 
-That's it. Exit 0 if all tests pass, 1 if any fail.
+### 3. Run
+
+```
+ouro --binary ./example --files "tests/**/*.example"
+```
+
+Or add an `ouro.toml` to avoid repeating flags:
+
+```toml
+binary = "./example"
+files  = "tests/**/*.example"
+```
+
+Then just run `ouro`. Exit 0 if all tests pass, 1 if any fail.
+
+### Failing tests
+
+When output doesn't match, ouro shows a diff:
+
+```
+FAIL tests/golden/simple.example
+
+  stdout:
+    - wrong expected output
+    + hello world
+
+test result: FAILED. 2 passed; 1 failed
+```
+
+An exit code mismatch looks like:
+
+```
+FAIL tests/golden/exit_nonzero.example
+
+  exit code: 0 → 42
+
+test result: FAILED. 2 passed; 1 failed
+```
 
 ---
 
@@ -82,10 +113,10 @@ Block content can contain anything — including `}`, `//`, or other tokens from
 ### `ouro.toml`
 
 ```toml
-binary = "./myc"           # required: path to your binary
-files  = "tests/**/*.myc" # required: glob of test files
-prefix = "// "             # comment prefix (default: "// ")
-jobs   = 4                 # parallel workers (default: num CPUs)
+binary = "./example"           # required: path to your binary
+files  = "tests/**/*.example" # required: glob of test files
+prefix = "// "                 # comment prefix (default: "// ")
+jobs   = 4                     # parallel workers (default: num CPUs)
 ```
 
 ### Comment prefix
