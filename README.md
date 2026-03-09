@@ -18,9 +18,10 @@ test result: FAILED. 2 passed; 1 failed
 
 ### Install
 
-        ```sh
-        curl -sSfL https://raw.githubusercontent.com/NickTomlin/ouro/main/install.sh | bash
-        ```
+```sh
+curl -sSfL https://raw.githubusercontent.com/NickTomlin/ouro/main/install.sh | bash
+```
+
 (See [github actions](#ci) integration for CI/CD).
 
 ### Create and annotate your test files
