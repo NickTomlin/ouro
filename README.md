@@ -1,6 +1,6 @@
 # 🥇 ouro 🥇
 
-A golden test runner for language authors. Embed test expectations directly in your source files as comments — no framework required.
+A golden test runner for language authors. Embed test expectations directly in your source files as comments — no toolchain or framework required.
 
 ```sh
 test tests/golden/errors.example ... ok
@@ -8,21 +8,21 @@ test tests/golden/multiline.example ... ok
 FAIL tests/golden/simple.example
 
   stdout:
-    - wrong expected output
-    + hello world
+    - hello world
+    + greetings globe
 
 test result: FAILED. 2 passed; 1 failed
 ```
-
 # Quick start
 
 ### Install
 
 ```sh
 curl -sSfL https://raw.githubusercontent.com/NickTomlin/ouro/main/install.sh | bash
+
 ```
 
-(See [github actions](#ci) integration for CI/CD).
+Or download from the [releases page](https://github.com/NickTomlin/ouro/releases) CI? See [github actions](#ci) integration for CI/CD).
 
 ### Create and annotate your test files
 
@@ -32,14 +32,7 @@ curl -sSfL https://raw.githubusercontent.com/NickTomlin/ouro/main/install.sh | b
 print "hello world"
 ```
 
-Or check stderr and exit code together:
-
-```
-// err: warning: unused variable 'x'
-// exit: 1
-
-error "warning: unused variable 'x'"
-```
+See [directives](#Directives) for more options.
 
 ### 3. Run
 
