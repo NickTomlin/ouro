@@ -1,55 +1,49 @@
 # 🥇 ouro 🥇
 
-A golden test runner for language authors. Embed test expectations directly in your source files as comments — no separate fixture files, no test harness boilerplate.
+A golden test runner for language authors. Embed test expectations directly in your source files as comments — no toolchain or framework required.
 
+```sh
+test tests/golden/errors.example ... ok
+test tests/golden/multiline.example ... ok
+FAIL tests/golden/simple.example
+
+  stdout:
+    - hello world
+    + greetings globe
+
+test result: FAILED. 2 passed; 1 failed
 ```
-test tests/golden/simple.myc ... ok
-test tests/golden/errors.myc ... ok
-test tests/golden/multiline.myc ... ok
+# Quick start
 
-test result: ok. 3 passed; 0 failed
-```
-
----
-
-## Quick start
-
-### 1. Install
+### Install
 
 ```sh
 curl -sSfL https://raw.githubusercontent.com/NickTomlin/ouro/main/install.sh | bash
-```
-
-### 2. Create `ouro.toml`
-
-```toml
-binary = "./myc"            # your compiler or interpreter
-files  = "tests/**/*.myc"  # glob of test files
-```
-
-### 3. Annotate your test files
-
-ouro runs `<binary> <test-file>` for each file and compares its output to directives written in the file's own comments:
-
-```javascript
-// args: --optimize
-// out: 42
-
-let x = 42
-console.log(x)
-```
-
-### 4. Run
 
 ```
-ouro
+
+Or download from the [releases page](https://github.com/NickTomlin/ouro/releases) CI? See [github actions](#ci) integration for CI/CD).
+
+### Create and annotate your test files
+
+```
+// out: hello world
+
+print "hello world"
 ```
 
-That's it. Exit 0 if all tests pass, 1 if any fail.
+See [directives](#Directives) for more options.
 
----
+### 3. Run
 
-## Directives
+```
+ouro --binary ./example --files "tests/**/*.example"
+```
+
+You can use the [`ouro.toml` config file](#configuration) to avoid repeating flags.
+
+
+# Directives
 
 | Directive | Form | Meaning |
 |-----------|------|---------|
@@ -75,28 +69,7 @@ Omitting `out:` or `err:` means that stream is not checked. Trailing newlines ar
 
 Block content can contain anything — including `}`, `//`, or other tokens from your language — without ambiguity.
 
----
-
-## Configuration
-
-### `ouro.toml`
-
-```toml
-binary = "./myc"           # required: path to your binary
-files  = "tests/**/*.myc" # required: glob of test files
-prefix = "// "             # comment prefix (default: "// ")
-jobs   = 4                 # parallel workers (default: num CPUs)
-```
-
-### Comment prefix
-
-Match the comment syntax of your language:
-
-```toml
-prefix = "# "    # Python / Ruby / shell
-prefix = "-- "   # Lua / Haskell
-prefix = "; "    # Assembly / .ini
-```
+# Configuration
 
 ### CLI flags
 
@@ -113,6 +86,25 @@ ouro [OPTIONS]
   --config <PATH>    Path to ouro.toml  [default: search upward from CWD]
 ```
 
+### `ouro.toml`
+
+```toml
+binary = "./example"           # required: path to your binary
+files  = "tests/**/*.example" # required: glob of test files
+prefix = "// "                 # comment prefix (default: "// ")
+jobs   = 4                     # parallel workers (default: num CPUs)
+```
+
+### Comment prefix
+
+Match the comment syntax of your language:
+
+```toml
+prefix = "# "    # Python / Ruby / shell
+prefix = "-- "   # Lua / Haskell
+prefix = "; "    # Assembly / .ini
+```
+
 ### Updating expectations
 
 When your output intentionally changes, regenerate all expected values in one step:
@@ -123,7 +115,8 @@ ouro --update
 
 This rewrites the directive lines in each test file with the actual output from your binary. Review the diff with `git diff`, then commit.
 
----
+
+# Other usage
 
 ## CI
 
@@ -139,7 +132,6 @@ This rewrites the directive lines in each test file with the actual output from 
 
 On Windows runners, or to pin a specific version, download a release asset directly. Each [GitHub release](https://github.com/NickTomlin/ouro/releases) includes: `ouro-linux-x86_64`, `ouro-macos-x86_64`, `ouro-macos-aarch64`, `ouro-windows-x86_64.exe`.
 
----
 
 ## Rust crate
 
@@ -147,16 +139,16 @@ See [docs.rs/ouro](https://docs.rs/ouro) for the Rust API.
 
 ---
 
-## Contributing
+# Contributing
 
 See [DEVELOPMENT.md](DEVELOPMENT.md) for build instructions, project layout, and release process.
 
 ---
 
-## Prior art
+# Prior art
 
 [jfecher/golden-tests](https://github.com/jfecher/golden-tests)
 
-## License
+# License
 
 MIT
