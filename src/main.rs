@@ -82,13 +82,22 @@ fn main() {
     enum Commands {
         /// Print a self-contained spec of ouro's directive syntax and CLI, suitable for an LLM context window
         LlmContext,
+        /// Print the ouro version
+        Version,
     }
 
     let cli = Cli::parse();
 
-    if let Some(Commands::LlmContext) = cli.command {
-        print!("{}", llm_context());
-        std::process::exit(0);
+    match cli.command {
+        Some(Commands::LlmContext) => {
+            print!("{}", llm_context());
+            std::process::exit(0);
+        }
+        Some(Commands::Version) => {
+            println!("{}", env!("CARGO_PKG_VERSION"));
+            std::process::exit(0);
+        }
+        None => {}
     }
 
     // Load base config from ouro.toml if present
