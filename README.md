@@ -22,7 +22,7 @@ curl -sSfL https://raw.githubusercontent.com/NickTomlin/ouro/main/install.sh | b
 
 ```
 
-Or download from the [releases page](https://github.com/NickTomlin/ouro/releases) CI? See [github actions](#ci) integration for CI/CD).
+Or download from the [releases page](https://github.com/NickTomlin/ouro/releases). For CI/CD, see [ci](#ci).
 
 ### Create and annotate your test files
 
@@ -41,7 +41,6 @@ ouro --binary ./example --files "tests/**/*.example"
 ```
 
 You can use the [`ouro.toml` config file](#configuration) to avoid repeating flags.
-
 
 # Directives
 
@@ -120,18 +119,26 @@ This rewrites the directive lines in each test file with the actual output from 
 
 ## CI
 
-**GitHub Actions:**
+### Genric
+
+Use the `install` script in a CI environment.
+
+### GitHub Actions
+
+Use the [ouro-action](https://github.com/NickTomlin/ouro-action) to install and run ouro:
 
 ```yaml
-- name: Install ouro
-  run: curl -sSfL https://raw.githubusercontent.com/NickTomlin/ouro/main/install.sh | bash
-
-- name: Run golden tests
-  run: ouro
+- uses: NickTomlin/ouro-action@v1
 ```
 
-On Windows runners, or to pin a specific version, download a release asset directly. Each [GitHub release](https://github.com/NickTomlin/ouro/releases) includes: `ouro-linux-x86_64`, `ouro-macos-x86_64`, `ouro-macos-aarch64`, `ouro-windows-x86_64.exe`.
+This expects an `ouro.toml` in the directory where you are running `ouro`, but you may also pass individual config in a `with` block:
 
+```yaml
+- uses: NickTomlin/ouro-action@v1
+  with:
+    binary: my-binary
+    files: tests/golden/*.golden.py
+```
 
 ## Rust crate
 
