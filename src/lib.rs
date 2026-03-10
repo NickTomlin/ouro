@@ -94,7 +94,7 @@ pub fn run(config_path: impl AsRef<Path>) -> Result<(), TestsFailed> {
 /// Builder for running a suite of golden tests.
 pub struct Suite {
     binary: Option<PathBuf>,
-    files: String,
+    files: Vec<String>,
     prefix: String,
     jobs: Option<usize>,
     update: bool,
@@ -104,7 +104,7 @@ impl Suite {
     pub fn new() -> Self {
         Self {
             binary: None,
-            files: "tests/**/*".to_string(),
+            files: vec![config::DEFAULT_FILES_GLOB.to_string()],
             prefix: "// ".to_string(),
             jobs: None,
             update: false,
@@ -127,7 +127,12 @@ impl Suite {
     }
 
     pub fn files(mut self, glob: impl Into<String>) -> Self {
-        self.files = glob.into();
+        self.files = vec![glob.into()];
+        self
+    }
+
+    pub fn files_from_vec(mut self, globs: Vec<String>) -> Self {
+        self.files = globs;
         self
     }
 
@@ -164,7 +169,10 @@ impl Suite {
         let test_cases = collect_tests(&self.files, &patterns);
 
         if test_cases.is_empty() {
-            eprintln!("ouro: no test files found matching '{}'", self.files);
+            eprintln!(
+                "ouro: no test files found matching '{}'",
+                self.files.join(", ")
+            );
             return Ok(());
         }
 
@@ -193,18 +201,26 @@ impl Default for Suite {
     }
 }
 
-fn collect_tests(glob_pattern: &str, patterns: &DefaultPatterns) -> Vec<TestCase> {
+fn collect_tests(globs: &[String], patterns: &DefaultPatterns) -> Vec<TestCase> {
     let mut cases = Vec::new();
-    let entries = glob::glob(glob_pattern).unwrap_or_else(|e| {
-        eprintln!("ouro: invalid glob pattern: {e}");
-        glob::glob("").unwrap()
-    });
+    for glob_pattern in globs {
+        let effective_pattern = if Path::new(glob_pattern).is_dir() {
+            format!("{glob_pattern}/*")
+        } else {
+            glob_pattern.clone()
+        };
 
-    for entry in entries.flatten() {
-        if entry.is_file() {
-            match parse_file(&entry, patterns) {
-                Ok(tc) => cases.push(tc),
-                Err(e) => eprintln!("ouro: parse error in {}: {e}", entry.display()),
+        let entries = glob::glob(&effective_pattern).unwrap_or_else(|e| {
+            eprintln!("ouro: invalid glob pattern: {e}");
+            glob::glob("").unwrap()
+        });
+
+        for entry in entries.flatten() {
+            if entry.is_file() {
+                match parse_file(&entry, patterns) {
+                    Ok(tc) => cases.push(tc),
+                    Err(e) => eprintln!("ouro: parse error in {}: {e}", entry.display()),
+                }
             }
         }
     }

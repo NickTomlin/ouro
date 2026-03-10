@@ -4,15 +4,33 @@ use std::path::{Path, PathBuf};
 #[derive(Debug, Deserialize, Clone)]
 pub struct Config {
     pub binary: String,
-    #[serde(default = "default_files")]
-    pub files: String,
+    #[serde(default = "default_files", deserialize_with = "deserialize_files")]
+    pub files: Vec<String>,
     #[serde(default = "default_prefix")]
     pub prefix: String,
     pub jobs: Option<usize>,
 }
 
-fn default_files() -> String {
-    "tests/**/*".to_string()
+fn deserialize_files<'de, D>(deserializer: D) -> Result<Vec<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum StringOrVec {
+        Single(String),
+        Multiple(Vec<String>),
+    }
+    match StringOrVec::deserialize(deserializer)? {
+        StringOrVec::Single(s) => Ok(vec![s]),
+        StringOrVec::Multiple(v) => Ok(v),
+    }
+}
+
+pub const DEFAULT_FILES_GLOB: &str = "tests/**/*";
+
+fn default_files() -> Vec<String> {
+    vec![DEFAULT_FILES_GLOB.to_string()]
 }
 
 fn default_prefix() -> String {
