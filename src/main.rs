@@ -56,9 +56,9 @@ fn main() {
         #[arg(long)]
         binary: Option<PathBuf>,
 
-        /// Glob of test files (e.g. "tests/**/*.myc"). Overrides ouro.toml.
-        #[arg(long)]
-        files: Option<String>,
+        /// Glob(s) or directories of test files. Overrides ouro.toml.
+        #[arg(long, num_args = 1..)]
+        files: Option<Vec<String>>,
 
         /// Comment prefix used to identify directive lines (e.g. "// ", "# ", "-- "). Overrides ouro.toml.
         #[arg(long)]
@@ -115,7 +115,7 @@ fn main() {
     if let Some(ref cfg) = base {
         suite = suite
             .binary(cfg.binary.clone())
-            .files(cfg.files.clone())
+            .files_from_vec(cfg.files.clone())
             .prefix(cfg.prefix.clone());
         if let Some(j) = cfg.jobs {
             suite = suite.jobs(j);
@@ -126,7 +126,7 @@ fn main() {
         suite = suite.binary(b);
     }
     if let Some(f) = cli.files {
-        suite = suite.files(f);
+        suite = suite.files_from_vec(f);
     }
     if let Some(p) = cli.prefix {
         suite = suite.prefix(p);
