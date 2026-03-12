@@ -77,3 +77,106 @@ jobs:
         with:
           tag_name: ${{ github.event.release.tag_name }}
           files: artifacts/*
+
+  homebrew-bump:
+    name: Update Homebrew Tap
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate GitHub App token
+        uses: actions/create-github-app-token@v2
+        id: tap-token
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          repositories: homebrew-ouro
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Compute sha256 hashes
+        id: sha
+        run: |
+          echo "linux_x86_64=$(sha256sum artifacts/ouro-linux-x86_64 | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+          echo "macos_x86_64=$(sha256sum artifacts/ouro-macos-x86_64 | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+          echo "macos_aarch64=$(sha256sum artifacts/ouro-macos-aarch64 | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          echo "tag=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "semver=${VERSION#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Clone tap repo
+        run: |
+          git clone \
+            "https://x-access-token:${{ steps.tap-token.outputs.token }}@github.com/NickTomlin/homebrew-ouro.git" \
+            tap
+
+      - name: Write updated formula
+        run: |
+          python3 - <<'PY'
+          import os, textwrap
+          version       = os.environ['VERSION']
+          semver        = os.environ['SEMVER']
+          sha_linux     = os.environ['SHA_LINUX']
+          sha_macos_x86 = os.environ['SHA_MACOS_X86']
+          sha_macos_arm = os.environ['SHA_MACOS_ARM']
+
+          formula = textwrap.dedent(f"""
+              class Ouro < Formula
+                desc "A golden test runner for language hackers"
+                homepage "https://github.com/NickTomlin/ouro"
+                version "{semver}"
+                license "MIT"
+
+                on_macos do
+                  on_arm do
+                    url "https://github.com/NickTomlin/ouro/releases/download/{version}/ouro-macos-aarch64"
+                    sha256 "{sha_macos_arm}"
+                  end
+                  on_intel do
+                    url "https://github.com/NickTomlin/ouro/releases/download/{version}/ouro-macos-x86_64"
+                    sha256 "{sha_macos_x86}"
+                  end
+                end
+
+                on_linux do
+                  on_intel do
+                    url "https://github.com/NickTomlin/ouro/releases/download/{version}/ouro-linux-x86_64"
+                    sha256 "{sha_linux}"
+                  end
+                end
+
+                def install
+                  bin.install Dir["ouro-*"].first => "ouro"
+                end
+
+                test do
+                  assert_match version.to_s, shell_output("\#{bin}/ouro --version")
+                end
+              end
+          """).lstrip()
+
+          with open("tap/Formula/ouro.rb", "w") as f:
+              f.write(formula)
+          PY
+        env:
+          VERSION: ${{ steps.version.outputs.tag }}
+          SEMVER: ${{ steps.version.outputs.semver }}
+          SHA_LINUX: ${{ steps.sha.outputs.linux_x86_64 }}
+          SHA_MACOS_X86: ${{ steps.sha.outputs.macos_x86_64 }}
+          SHA_MACOS_ARM: ${{ steps.sha.outputs.macos_aarch64 }}
+
+      - name: Commit and push formula
+        run: |
+          cd tap
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/ouro.rb
+          git commit -m "chore: bump ouro to ${{ steps.version.outputs.tag }}"
+          git push
